@@ -1,4 +1,4 @@
-%squiggly
+%creates function that looks like crumpled elastomer ring
 R0 = .03
 r0 = .01
 q = 5
@@ -16,6 +16,8 @@ for i = 2:n
 end
 R_0
 thetas
+
+%physical properties
 rho = 995*ds*.01*.002;
 tan_del = .125
 wn_a = sqrt(k_a(0)/rho)
@@ -25,6 +27,7 @@ c_t = wn_t*tan_del
 
 r_int_max = .05;
 
+%dynamic matrix indices
 inds = [1:n*4].';
 R_x_inds = inds(mod(1:size(inds,1),4)==1);
 dR_x_inds = inds(mod(1:size(inds,1),4)==2);
@@ -34,32 +37,25 @@ Q_0 = zeros(4*n,1);
 Q_0(R_x_inds) = R_0(:,1);
 Q_0(R_y_inds) = R_0(:,2);
 
+%force function
 P = @(t)P_ext(t,0,.25,3,.05,r_int_max,n)
 
+%Executes Simulation
 dQ_ode = @(t,y)dQ(t,y,rho,c_t,c_a,@(k)k_t(k),@(d)k_a(d),ds,R_x_inds,dR_x_inds,R_y_inds,dR_y_inds,P);
 J_pattern = repmat(spdiags(ones(2*n,10),-4:5,2*n,2*n),2,2)
-%M_ode = @(t,y)mass_mat(t,y,rho,@(k)k_t(k),ds,R_x_inds,dR_x_inds,R_y_inds,dR_y_inds);
-tspan = [0 4]
+tspan = [0 .5]
 
 [t,y] = ode15s(dQ_ode, tspan,Q_0);
 
 
 figure(1)
-hold on
-for i = 1:size(t,1)
-    %plot3(y(i,R_x_inds),y(i,R_y_inds),t(i)*ones(size(R_x_inds,1),1),'blue')
-    %[th,k,j,del_ds] = getShape([y(i,R_x_inds).',y(i,R_y_inds).'],ds);
-    %quiver3(y(i,R_x_inds).',y(i,R_y_inds).',t(i)*ones(size(R_x_inds,1),1),k(:,1),k(:,2),zeros(size(R_x_inds,1),1),'red')
-    %quiver3(y(i,R_x_inds).',y(i,R_y_inds).',t(i)*ones(size(R_x_inds,1),1),k(:,1),k(:,2),zeros(size(R_x_inds,1),1),'magenta')
-end
-zlim([0 t(end)])
-ylim([-2*R0, 2*R0])
-xlim([-2*R0, 2*R0])
-hold off
+%Shows animated simulation results
 while true
     expansion_animation(t,y,ds,rho,c_t,c_a,R_x_inds,R_y_inds,dR_x_inds,dR_y_inds,P,R0,2,18,tspan,'expansion.gif')
     expansion_animation(t,y,ds,rho,c_t,c_a,R_x_inds,R_y_inds,dR_x_inds,dR_y_inds,P,R0,2,50,tspan,'expansion.gif')
 end
+
+%calculated the state change matrix
 function ret = dQ(t,R,rho,c_t,c_a,k_t,k_a,ds,R_x_inds,dR_x_inds,R_y_inds,dR_y_inds,P_ext) %F_t should return 100x1 array of pressure
     t
     n = size(R_x_inds,1);
@@ -82,6 +78,7 @@ function ret = dQ(t,R,rho,c_t,c_a,k_t,k_a,ds,R_x_inds,dR_x_inds,R_y_inds,dR_y_in
     ret = AQ;
 end
 
+%approximation of intestinal force function
 function P = P_ext(t,P_max,f_undulation,f_spacial,f_rotation,r_int_max,n)
     %rotating, undulating sin wave
     %P = (sin(f_undulation*t)+1)*P_max/2*(sin(2*pi*f_spacial/n*x + 2*pi*f_rotation) + 1);
